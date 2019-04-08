@@ -1,0 +1,77 @@
+version: "3.6"
+services:
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: on-failure
+    networks:
+      - pgs_net
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    ports:
+      - 80:80
+      - 443:443
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    depends_on:
+      - shinyproxy
+      - api
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    restart: on-failure
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+  db:
+    image: postgres:11-alpine
+    container_name: housemate_db
+    environment:
+      - POSTGRES_PASSWORD=14KfFfJ@IHp1
+    volumes:
+      - type: volume
+        source: housemate_data
+        target: /var/lib/postgresql/data/
+        volume:
+          no-copy: true
+    networks:
+      - pgs_net
+    ports:
+      - 5432:5432
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: housemate_api
+    restart: on-failure
+    networks:
+      - pgs_net
+    ports:
+      - 5000:5000
+    depends_on:
+      - db
+
+  shinyproxy:
+    image: telethonkids/shinyproxy
+    container_name: housemate_shinyproxy
+    restart: on-failure
+    networks:
+      - pgs_net
+    volumes:
+      - ./application.yml:/opt/shinyproxy/application.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+    expose:
+      - 8080
+
+volumes:
+  housemate_data:
+
+networks:
+  pgs_net:
+    name: pgs_net

@@ -1,0 +1,40 @@
+proxy:
+  authentication: simple # openid
+  users:
+  - name: pstevenson6@gmail.com
+    password: password
+    groups: USERS
+  - name: jessica.pandohee@gmail.com
+    password: password
+    groups: USERS
+  openid:
+    auth-url: https://accounts.google.com/o/oauth2/v2/auth
+    token-url: https://www.googleapis.com/oauth2/v4/token
+    jwks-url: https://www.googleapis.com/oauth2/v3/certs
+    client-id: 1051106373510-im09s2jtrkefktaadhql1uealnc36bsj.apps.googleusercontent.com
+    client-secret: HefJOj91ZMUN72zfqjLgiqxp
+    logout-url: https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout?continue=localhost
+    # username-attribute: sub
+  title: PGS Shiny Proxy
+  hide-navbar: true
+  landing-page: /
+  heartbeat-rate: 10000
+  heartbeat-timeout: 600000
+  port: 8080
+  docker:
+    internal-networking: true
+  specs:
+  - id: webapp
+    display-name: Housemate Web App
+    description: Housemate Web App - Shiny
+    container-cmd: ["R", "-e", "shiny::runApp('/root/app')"]
+    container-image: housemate/shiny
+    container-network: pgs_net
+    container-env:
+      user: 'shiny'
+      environment:
+        - APPLICATION_LOGS_TO_STDOUT=false
+
+logging:
+  file:
+    shinyproxy.log
