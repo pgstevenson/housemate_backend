@@ -39,10 +39,17 @@ services:
         target: /var/lib/postgresql/data/
         volume:
           no-copy: true
+      - ./data/db/:/home/
     networks:
       - pgs_net
     ports:
       - 5432:5432
+    environment:
+      - TZ=Australia/Perth
+    # command: >
+    #   sh -c "
+    #   echo '1 0 * * * * pg_dump --username=postgres postgres > /home/$$(date +%Y%m%d%H%M)_housemate.bak' > /etc/crontabs/root
+    #   && crond -f"
 
   api:
     build:
