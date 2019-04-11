@@ -1,0 +1,1 @@
+1 0 * * * * pg_dump -h housemate_db -U postgres postgres > /home/$$(date +%Y%m%d%H%M)_housemate.bak

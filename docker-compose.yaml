@@ -39,17 +39,30 @@ services:
         target: /var/lib/postgresql/data/
         volume:
           no-copy: true
-      - ./data/db/:/home/
     networks:
       - pgs_net
     ports:
       - 5432:5432
     environment:
       - TZ=Australia/Perth
-    # command: >
-    #   sh -c "
-    #   echo '1 0 * * * * pg_dump --username=postgres postgres > /home/$$(date +%Y%m%d%H%M)_housemate.bak' > /etc/crontabs/root
-    #   && crond -f"
+
+  cron:
+    image: postgres:11-alpine
+    container_name: housemate_cron
+    environment:
+      - TZ=Australia/Perth
+    volumes:
+      - ./data/db/:/home/
+      - ./crontab_db:/etc/crontabs/crontab
+      - ./.pgpass:/home/.pgpass
+    command: >
+      sh -c "chown root:root /home/.pgpass
+      && chmod 0600 /home/.pgpass
+      && export PGPASSFILE='/home/.pgpass'
+      && crontab /etc/crontabs/crontab
+      && crond -f"
+    networks:
+      - pgs_net
 
   api:
     build:
