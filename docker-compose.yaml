@@ -47,20 +47,14 @@ services:
       - TZ=Australia/Perth
 
   cron:
-    image: postgres:11-alpine
+    build:
+      context: ./cron
+      dockerfile: Dockerfile
     container_name: housemate_cron
     environment:
       - TZ=Australia/Perth
     volumes:
       - ./data/db/:/home/
-      - ./crontab_db:/etc/crontabs/crontab
-      - ./.pgpass:/home/.pgpass
-    command: >
-      sh -c "chown root:root /home/.pgpass
-      && chmod 0600 /home/.pgpass
-      && export PGPASSFILE='/home/.pgpass'
-      && crontab /etc/crontabs/crontab
-      && crond -f"
     networks:
       - pgs_net
 
