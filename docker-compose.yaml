@@ -51,10 +51,8 @@ services:
       context: ./cron
       dockerfile: Dockerfile
     container_name: housemate_cron
-    environment:
-      - TZ=Australia/Perth
     volumes:
-      - ./data/db/:/home/
+      - ./data/db/:/home/postgres/bak/
     networks:
       - pgs_net
 
