@@ -1,5 +1,6 @@
 # app.py - a minimal flask api using flask_restful
 
+import json
 import flask
 from flask import request, jsonify
 from flask_cors import CORS # add this line to overcome "No 'Access-Control-Allow-Origin' header is present on the requested resource." issue
@@ -253,7 +254,7 @@ def expenses_new():
                 request.args['uid'],
                 request.args['cid'] if 'cid' in request.args else '$NULL$',
                 request.args['store'] if 'store' in request.args else '$NULL$',
-                request.args['notes'] if 'notes' in request.args else '$NULL$',
+                request.args['notes'].replace("'", "''") if 'notes' in request.args else '$NULL$',
                 request.args['root_id'] if 'root_id' in request.args else '$NULL$',
                 request.args['mod_user'] if 'mod_user' in request.args else '$NULL$').replace("'$NULL$'","NULL"))
         conn.commit()
