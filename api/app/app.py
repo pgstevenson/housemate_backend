@@ -361,10 +361,10 @@ def get_stores():
         conn = psycopg2.connect(**params)
         cur = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
         if 'id' in request.args:
-            cur.execute("""SELECT id, name, city, entity FROM stores WHERE id='{}'""".format(request.args['id']))
+            cur.execute("""SELECT id, name, city, entity, CONCAT_WS(', ', name, city) AS out FROM stores WHERE id='{}'""".format(request.args['id']))
         else:
             cur.execute("""
-            SELECT id, name, city, entity
+            SELECT id, name, city, entity, CONCAT_WS(', ', name, city) AS out
             FROM stores
             WHERE to_tsvector('english', coalesce(name,'') || ' ' || coalesce(city,'') || ' ' || coalesce(entity,'')) @@ to_tsquery('{}')
                 AND stores.deleted = 'f'""".format(request.args['words'].strip().replace(' ', ' & ')))
