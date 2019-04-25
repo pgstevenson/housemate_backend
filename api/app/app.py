@@ -195,24 +195,26 @@ def user_group_new():
 def get_expenses():
     """ return all expenses for user group id """
     conn = None
-    if not 'gid' in request.args:
-        return jsonify({'code':400, 'name':'Bad Request', 'key':'gid'})
+    if not any(x in request.args for x in ['gid', 'id']):
+        return jsonify({'code':400, 'name':'Bad Request', 'key':'gid or id'})
     try:
         params = config()
         conn = psycopg2.connect(**params)
         cur = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
         cur.execute("""
-            SELECT expenses.id as id, date, person.id AS uid, person.first AS who, expenses.amount, cat.id AS cid, cat.category, stores.id AS sid, stores.name AS store, expenses.notes, expenses.root_id
-            FROM expenses
-            LEFT JOIN person
-            ON expenses.who = person.id
-            LEFT JOIN
-                (SELECT id, CASE WHEN parent IS NULL THEN name ELSE CONCAT_WS('/', parent, name) END AS category FROM categories) AS cat
-            ON expenses.category = cat.id
-            LEFT JOIN stores
-            ON expenses.store = stores.id
-            WHERE expenses.gid='{}' AND expenses.deleted='f'
-            ORDER BY expenses.date DESC""".format(request.args['gid']))
+        SELECT expenses.id as id, date, person.id AS uid, expenses.amount, cat.id AS cid, cat.category, stores.id AS sid, stores.name AS store, expenses.notes, expenses.root_id
+        FROM expenses
+        LEFT JOIN person
+        ON expenses.who = person.id
+        LEFT JOIN
+            (SELECT id, CASE WHEN parent IS NULL THEN name ELSE CONCAT_WS('/', parent, name) END AS category FROM categories) AS cat
+        ON expenses.category = cat.id
+        LEFT JOIN stores
+        ON expenses.store = stores.id
+        WHERE {}='{}' AND expenses.deleted='f'
+        ORDER BY expenses.date DESC""".format(
+            'expenses.gid' if 'gid' in request.args else 'expenses.id',
+            request.args['gid'] if 'gid' in request.args else request.args['id']))
         ans = cur.fetchall()
         if (len(ans) == 0):
             return jsonify({'code':204, 'name':'No Content', 'key':'gid'})
@@ -247,7 +249,8 @@ def expenses_new():
         cur = conn.cursor()
         cur.execute("""
             INSERT INTO expenses (gid, amount, date, who, category, store, notes, root_id, mod_user)
-            VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')""".format(
+            VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')
+            RETURNING id""".format(
                 request.args['gid'],
                 request.args['amount'],
                 request.args['date'],
@@ -257,8 +260,11 @@ def expenses_new():
                 request.args['notes'].replace("'", "''") if 'notes' in request.args else '$NULL$',
                 request.args['root_id'] if 'root_id' in request.args else '$NULL$',
                 request.args['mod_user'] if 'mod_user' in request.args else '$NULL$').replace("'$NULL$'","NULL"))
+        ans = cur.fetchone()
         conn.commit()
-        return jsonify([{'code':201, 'name': 'Created'}])
+        if ans is None:
+            return jsonify({'code':204, 'name':'No Content', 'key':'id'})
+        return jsonify({'code':201, 'name': 'Created', 'id':ans[0]})
     except (Exception, psycopg2.DatabaseError) as error:
         return str(error)
     finally:
