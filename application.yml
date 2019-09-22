@@ -1,5 +1,5 @@
 proxy:
-  authentication: simple # openid
+  authentication: none # openid
   users:
   - name: pstevenson6@gmail.com
     password: password

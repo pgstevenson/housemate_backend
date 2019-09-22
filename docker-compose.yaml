@@ -29,11 +29,12 @@ services:
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
   db:
-    image: postgres:11-alpine
+    image: postgres:11
     container_name: housemate_db
     environment:
       - POSTGRES_PASSWORD=14KfFfJ@IHp1
     volumes:
+      - ./initdb.sh:/docker-entrypoint-initdb.d/initdb.sh
       - type: volume
         source: housemate_data
         target: /var/lib/postgresql/data/
@@ -78,8 +79,8 @@ services:
     volumes:
       - ./application.yml:/opt/shinyproxy/application.yml
       - /var/run/docker.sock:/var/run/docker.sock
-    expose:
-      - 8080
+    ports:
+      - 8080:8080 # expose port 8080
 
 volumes:
   housemate_data:

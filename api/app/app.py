@@ -47,8 +47,8 @@ def get_users():
         conn = psycopg2.connect(**params)
         cur = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
         cur.execute("""
-        SELECT id AS uid, first, last, email FROM person
-        WHERE email='{}' AND person.deleted = 'f'""".format(request.args['email']))
+        SELECT id AS uid, first, last, email FROM people
+        WHERE email='{}' AND people.deleted = 'f'""".format(request.args['email']))
         ans = cur.fetchone()
         if ans is None:
             return jsonify({'code':204, 'name':'No Content', 'key':'id'})
@@ -74,8 +74,8 @@ def get_groups():
         INNER JOIN
           (SELECT * FROM user_group) AS gid ON exp_group.id = gid.gid
         INNER JOIN
-          (SELECT id as uid, email, deleted FROM person WHERE email = '{}') AS person ON gid.uid = person.uid
-        WHERE exp_group.deleted = 'f' AND person.deleted = 'f'""".format(request.args['email']))
+          (SELECT id as uid, email, deleted FROM people WHERE email = '{}') AS people ON gid.uid = people.uid
+        WHERE exp_group.deleted = 'f' AND people.deleted = 'f'""".format(request.args['email']))
         ans = cur.fetchall()
         if (len(ans) == 0):
             return jsonify({'code':204, 'name':'No Content', 'key':'gid'})
@@ -102,7 +102,7 @@ def get_group_members():
         cur.execute("""
         SELECT user_group.uid, people.first, people.last, user_group.admin FROM user_group
         INNER JOIN
-            (SELECT * FROM person) AS people ON user_group.uid = people.id
+            (SELECT * FROM people) AS people ON user_group.uid = people.id
         WHERE gid='{}'""".format(request.args['gid']))
         ans = cur.fetchall()
         if (len(ans) == 0):
@@ -128,7 +128,7 @@ def get_users_new():
         conn = psycopg2.connect(**params)
         cur = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
         cur.execute("""
-        INSERT INTO person(email) VALUES ('{}') RETURNING id AS uid, first, last, email
+        INSERT INTO people(email) VALUES ('{}') RETURNING id AS uid, first, last, email
         """.format(request.args['email']))
         ans = cur.fetchone()
         conn.commit()
@@ -202,10 +202,10 @@ def get_expenses():
         conn = psycopg2.connect(**params)
         cur = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
         cur.execute("""
-        SELECT expenses.id as id, date, person.id AS uid, expenses.amount, cat.id AS cid, cat.category, stores.id AS sid, stores.name AS store, expenses.notes, expenses.root_id
+        SELECT expenses.id as id, to_char(expenses.date, 'YYYY-MM-DD') AS date, people.id AS uid, expenses.amount, cat.id AS cid, cat.category, stores.id AS sid, stores.name AS store, expenses.notes, expenses.root_id
         FROM expenses
-        LEFT JOIN person
-        ON expenses.who = person.id
+        LEFT JOIN people
+        ON expenses.who = people.id
         LEFT JOIN
             (SELECT id, CASE WHEN parent IS NULL THEN name ELSE CONCAT_WS('/', parent, name) END AS category FROM categories) AS cat
         ON expenses.category = cat.id
@@ -301,11 +301,11 @@ def get_months_person():
         conn = psycopg2.connect(**params)
         cur = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
         cur.execute("""
-            SELECT SUBSTR(cast(expenses.date AS text), 1, 6) AS month, person.first AS person, sum(expenses.amount)
+            SELECT to_char(expenses.date, 'YYYY-MM') AS month, people.first AS person, sum(expenses.amount)
             FROM expenses
-            LEFT JOIN person ON expenses.who = person.id
+            LEFT JOIN people ON expenses.who = people.id
             WHERE expenses.gid = '{}' AND expenses.deleted ='f'
-            GROUP BY month, person.first
+            GROUP BY month, people.first
             ORDER BY month""".format(request.args['gid']))
         ans = cur.fetchall()
         if (len(ans) == 0):
@@ -331,7 +331,7 @@ def get_months_category():
         conn = psycopg2.connect(**params)
         cur = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
         cur.execute("""
-            SELECT SUBSTR(cast(expenses.date AS text), 1, 6) AS month, cat.category, sum(expenses.amount)
+            SELECT to_char(expenses.date, 'YYYY-MM') AS month, cat.category, sum(expenses.amount)
             FROM expenses
             LEFT JOIN
                 (SELECT id, CASE WHEN parent IS NULL THEN name ELSE CONCAT_WS('/', parent, name) END AS category FROM categories) AS cat
