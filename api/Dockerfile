@@ -13,6 +13,8 @@ RUN apk update && \
  python3 -m pip install -r requirements.txt --no-cache-dir && \
  apk --purge del .build-deps
 
+COPY ./app.py /app/app.py
+
 ENTRYPOINT ["python"]
 
 CMD ["app.py"]
