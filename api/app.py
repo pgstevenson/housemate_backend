@@ -362,6 +362,38 @@ def get_stores():
         if conn is not None:
             conn.close()
 
+@app.route('/api/v1/stores/new', methods = ['GET'])
+def expenses_new():
+    """ Add new store """
+    conn = None
+    fault = []
+    if not 'name' in request.args:
+        fault.append({'code': 400, 'name': 'Bad Request', 'key': 'name'})
+    if (len(fault) > 0):
+        return jsonify(fault)
+    try:
+        params = config()
+        conn = psycopg2.connect(**params)
+        cur = conn.cursor()
+        cur.execute("""
+        INSERT INTO stores (name, entity, city)
+        VALUES ('{}', '{}', '{}')
+        RETURNING id
+        """.format(
+            request.args['name'],
+            request.args['entity'],
+            request.args['city']
+        ans = cur.fetchone()
+        conn.commit()
+        if ans is None:
+            return jsonify({'code':204, 'name':'No Content', 'key':'id'})
+        return jsonify({'code':201, 'name': 'Created', 'id':ans[0]})
+    except (Exception, psycopg2.DatabaseError) as error:
+        return str(error)
+    finally:
+        if conn is not None:
+            conn.close()
+
 if __name__ == '__main__':
     # Debug/Development
     # app.run(debug=False, host='0.0.0.0', port='5000', threaded=True)
